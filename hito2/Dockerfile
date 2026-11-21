@@ -2,8 +2,7 @@
 FROM python:3.12-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN python -m venv /opt/venv
-RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # Lo que necesito para EJECUTAR mi app
 FROM python:3.12-slim
@@ -12,5 +11,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY . .
-USER appuser
+USER 10001
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
 CMD ["gunicorn","--workers","2","--bind","0.0.0.0:5000","app:app"]
